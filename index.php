@@ -52,12 +52,12 @@
         }
 
         function renderCards(elementId, cards, isHand = false) {
-    const container = document.getElementById(elementId);
-    container.innerHTML = '';
-    cards.forEach(card => {
-        const div = document.createElement('div');
-        div.className = 'card ' + getSuitClass(card.suit);
-        div.innerText = card.rank + ' ' + card.suit;
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+                cards.forEach(card => {
+                    const div = document.createElement('div');
+                    div.className = 'card ' + getSuitClass(card.suit);
+                    div.innerText = card.rank + ' ' + card.suit;
         
         // Αν είναι στο χέρι μου, κάνε το clickable
         if (isHand) {
@@ -70,10 +70,31 @@
 }
 
 // Βοηθητική συνάρτηση για χρώματα
-function getSuitClass(suit) {
-    if (suit === 'H' || suit === 'D') return 'hearts';
-    return 'spades';
+        function getSuitClass(suit) {
+            if (suit === 'H' || suit === 'D') return 'hearts';
+                return 'spades';
 }
+
+        function playCard(rank, suit) {
+            fetch('api/play_card.php', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json' // Εδώ ήταν το λάθος (χρειάζεται : )
+                },
+                body: JSON.stringify({ rank: rank, suit: suit })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadBoard(); 
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+}
+
+
 
         // Φόρτωση του board κατά το άνοιγμα
         loadBoard();
