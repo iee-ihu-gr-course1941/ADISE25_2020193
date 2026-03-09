@@ -194,7 +194,7 @@
             container.innerHTML = '';
     
             // Αντιστοίχιση συμβόλων
-            const symbols = { 'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣' };
+            const symbols = { 'SPADES': '♠', 'HEARTS': '♥', 'DIAMONDS': '♦', 'CLUBS': '♣' };
 
             cards.forEach(card => {
                 const div = document.createElement('div');
