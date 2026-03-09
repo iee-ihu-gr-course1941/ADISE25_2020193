@@ -2,7 +2,7 @@
 $host = 'localhost';
 $db   = 'xeri_game';
 $user = 'iee2020193';      // Βάλε το δικό σου username αν διαφέρει
-$pass = '123098';          // Βάλε το δικό σου password
+$pass = '';          // Βάλε το δικό σου password
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
