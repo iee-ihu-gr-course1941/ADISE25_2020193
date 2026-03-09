@@ -34,46 +34,52 @@
     <script>
         // Εδώ θα μπει η JavaScript για να καλεί το API
         function resetGame() {
+            console.log("Reset button clicked..."); // Θα το δούμε στο F12
             fetch('api/reset.php')
                 .then(response => response.json())
                 .then(data => {
+                    console.log("API Response:", data);
                     alert(data.message);
                     loadBoard();
-                });
+                })
+                .catch(err => console.error("Reset Error:", err));
         }
 
         function loadBoard() {
             fetch('api/get_board.php')
                 .then(response => response.json())
                 .then(data => {
-                    renderCards('table-cards', data.table);
-                    renderCards('my-hand', data.hand);
-                });
+                    console.log("Board Data:", data);
+                    // Προσοχή: Εδώ περνάμε true για το χέρι του παίκτη
+                    renderCards('table-cards', data.table, false);
+                    renderCards('my-hand', data.hand, true);
+                })
+                .catch(err => console.error("Load Board Error:", err));
         }
 
-        function renderCards(elementId, cards, isHand = false) {
+        function renderCards(elementId, cards, isHand) {
             const container = document.getElementById(elementId);
+            if(!container) return;
             container.innerHTML = '';
-                cards.forEach(card => {
-                    const div = document.createElement('div');
-                    div.className = 'card ' + getSuitClass(card.suit);
-                    div.innerText = card.rank + ' ' + card.suit;
+    
+            cards.forEach(card => {
+                const div = document.createElement('div');
+                div.className = 'card ' + (card.suit === 'H' || card.suit === 'D' ? 'hearts' : 'spades');
+                div.innerText = card.rank + ' ' + card.suit;
         
-        // Αν είναι στο χέρι μου, κάνε το clickable
-        if (isHand) {
-            div.style.cursor = 'pointer';
-            div.onclick = () => playCard(card.rank, card.suit);
+                if (isHand) {
+                    div.style.cursor = 'pointer';
+                    div.onclick = () => playCard(card.rank, card.suit);
+                }
+                container.appendChild(div);
+            });
         }
-        
-        container.appendChild(div);
-    });
-}
 
 // Βοηθητική συνάρτηση για χρώματα
         function getSuitClass(suit) {
             if (suit === 'H' || suit === 'D') return 'hearts';
                 return 'spades';
-}
+        }
 
         function playCard(rank, suit) {
             fetch('api/play_card.php', {
