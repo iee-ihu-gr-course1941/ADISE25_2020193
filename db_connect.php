@@ -1,8 +1,8 @@
 <?php
 $host = 'localhost';
 $db   = 'xeri_game';
-$user = 'iee2020193';      // Βάλε το δικό σου username αν διαφέρει
-$pass = '';          // Βάλε το δικό σου password
+$user = 'iee2020193'; 
+$pass = '123098'; // Βάλε τον κωδικό που χρησιμοποιείς για να μπαίνεις MariaDB
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -15,6 +15,7 @@ $options = [
 try {
      $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-     throw new \PDOException($e->getMessage(), (int)$e->getCode());
+     // Αυτό θα μας βοηθήσει να δούμε το ακριβές λάθος αν αποτύχει πάλι
+     die("Connection failed: " . $e->getMessage());
 }
 ?>
