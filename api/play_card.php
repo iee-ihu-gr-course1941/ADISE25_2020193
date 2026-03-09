@@ -46,6 +46,27 @@ try {
             ->execute([$next_pos, $game_id, $rank, $suit]);
     }
 
+    // ΕΛΕΓΧΟΣ: Μήπως άδειασαν τα χέρια;
+    $stmtHand = $pdo->prepare("SELECT COUNT(*) as count FROM board WHERE game_id = ? AND location = 'hand_p1'");
+    $stmtHand->execute([$game_id]);
+    $cards_left = $stmtHand->fetch()['count'];
+
+    if ($cards_left == 0) {
+        // Αν δεν έχει άλλα στο χέρι, τραβάμε 6 νέα από το deck
+        // (Σημείωση: Στην κανονική Ξερή μοιράζουμε και στους δύο παίκτες)
+        $stmtDeck = $pdo->prepare("SELECT card_suit, card_rank FROM board 
+                                   WHERE game_id = ? AND location = 'deck' 
+                                   ORDER BY pos ASC LIMIT 6");
+        $stmtDeck->execute([$game_id]);
+        $new_cards = $stmtDeck->fetchAll();
+
+        foreach ($new_cards as $c) {
+            $pdo->prepare("UPDATE board SET location = 'hand_p1' 
+                           WHERE game_id = ? AND card_suit = ? AND card_rank = ?")
+                ->execute([$game_id, $c['card_suit'], $c['card_rank']]);
+        }
+    }
+
     echo json_encode(['status' => 'success', 'captured' => $captured]);
 } catch (Exception $e) {
     echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);

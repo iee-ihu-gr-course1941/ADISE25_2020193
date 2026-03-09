@@ -4,7 +4,7 @@ function reset_board($game_id, $pdo) {
     $pdo->prepare("DELETE FROM board WHERE game_id = ?")->execute([$game_id]);
 
     // 2. Δημιουργούμε μια πλήρη τράπουλα 52 φύλλων
-    $suits = ['S', 'H', 'D', 'C'];
+    $suits = ['SPADES', 'HEARTS', 'DIAMONDS', 'CLUBS']; // ΣΠΑΘΙΑ, ΚΟΥΠΕΣ, ΚΑΡΟ, ΜΠΑΣΤΟΥΝΙΑ
     $ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     $deck = [];
 
