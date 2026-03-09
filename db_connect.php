@@ -1,6 +1,6 @@
 <?php
 $host = '127.0.0.1';
-$db   = 'xeri_game';
+$db   = 'kseri_db';
 $user = 'iee2020193'; 
 $pass = '123098'; 
 $port = '3307'; 
