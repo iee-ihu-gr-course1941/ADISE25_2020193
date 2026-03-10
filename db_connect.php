@@ -14,7 +14,6 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 } catch (PDOException $e) {
-    // Αν αποτύχει, θα μας πει το γιατί
     die("Connection failed: " . $e->getMessage());
 }
 ?>
