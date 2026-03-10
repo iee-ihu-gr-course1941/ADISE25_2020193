@@ -3,21 +3,39 @@ require_once '../db_connect.php';
 header('Content-Type: application/json');
 
 $input = json_decode(file_get_contents('php://input'), true);
-$rank = $input['rank'];
-$suit = $input['suit'];
-$rank = trim($rank);
-$suit = trim($suit);
+$rank = trim($input['rank']);
+$suit = trim($input['suit']);
+$player_num = intval($input['player_num']); // Ο παίκτης που έστειλε το αίτημα
 $game_id = 1;
 
 try {
-    // 1. Παίρνουμε την τρέχουσα κατάσταση (Ποιος παίζει;)
+    // 1. Έλεγχος: Ποιανού σειρά είναι στη βάση;
     $stmtGame = $pdo->prepare("SELECT current_turn FROM games WHERE game_id = ?");
     $stmtGame->execute([$game_id]);
     $game = $stmtGame->fetch();
+    
     $current_p = $game['current_turn']; // 'P1' ή 'P2'
+    $expected_turn = 'P' . $player_num;
+
+    // Αν κάποιος προσπαθεί να παίξει ενώ δεν είναι η σειρά του
+    if ($current_p !== $expected_turn) {
+        echo json_encode(['status' => 'error', 'message' => 'Δεν είναι η σειρά σου!']);
+        exit;
+    }
+
+    // 2. Έλεγχος: Του ανήκει όντως αυτό το φύλλο;
+    $loc_hand = 'hand_p' . $player_num;
+    $stmtCheck = $pdo->prepare("SELECT COUNT(*) as c FROM board WHERE game_id = ? AND card_rank = ? AND card_suit = ? AND location = ?");
+    $stmtCheck->execute([$game_id, $rank, $suit, $loc_hand]);
+    if ($stmtCheck->fetch()['c'] == 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Αυτό το φύλλο δεν είναι στο χέρι σου!']);
+        exit;
+    }
+
+    // 3. Βρίσκουμε το επόμενο turn
     $next_p = ($current_p == 'P1') ? 'P2' : 'P1';
 
-    // 2. Βρίσκουμε το τελευταίο φύλλο στο τραπέζι για να δούμε αν τα παίρνει
+    // 4. Βρίσκουμε το τελευταίο φύλλο στο τραπέζι για τη λογική του μαζέματος
     $stmtTable = $pdo->prepare("SELECT card_rank FROM board WHERE game_id = ? AND location = 'table' ORDER BY pos DESC LIMIT 1");
     $stmtTable->execute([$game_id]);
     $last_card = $stmtTable->fetch();
@@ -46,12 +64,28 @@ try {
     $loc_hand = ($current_p == 'P1') ? 'hand_p1' : 'hand_p2';
     $loc_captured = ($current_p == 'P1') ? 'captured_p1' : 'captured_p2';
 
+    // ... μετά τη λογική που ορίζει το $captured και το $is_xeri ...
+
     if ($captured) {
+        $loc_captured = ($current_p == 'P1') ? 'captured_p1' : 'captured_p2';
+        
+        // --- ΕΔΩ ΜΠΑΙΝΕΙ Η ΕΝΗΜΕΡΩΣΗ ΤΩΝ ΞΕΡΩΝ ΣΤΗ ΒΑΣΗ ---
+        if ($is_xeri) {
+            $column = ($current_p == 'P1') ? 'p1_xeris' : 'p2_xeris';
+            // Ενημερώνουμε τον πίνακα games προσθέτοντας μια ξερή στον παίκτη
+            $pdo->prepare("UPDATE games SET $column = $column + 1 WHERE game_id = ?")
+                ->execute([$game_id]);
+        }
+
+        // Μαζεύουμε όλα τα φύλλα από το τραπέζι στην περιοχή captured του παίκτη
         $pdo->prepare("UPDATE board SET location = ?, player_id = ?, pos = 0 WHERE game_id = ? AND location = 'table'")
             ->execute([$loc_captured, ($current_p == 'P1' ? 1 : 2), $game_id]);
+            
+        // Μαζεύουμε και το φύλλο που μόλις έπαιξε ο παίκτης
         $pdo->prepare("UPDATE board SET location = ?, player_id = ?, pos = 0 WHERE game_id = ? AND card_rank = ? AND card_suit = ? AND location = ?")
             ->execute([$loc_captured, ($current_p == 'P1' ? 1 : 2), $game_id, $rank, $suit, $loc_hand]);
     } else {
+        // Αν δεν μάζεψε, το φύλλο απλά πάει στο τραπέζι
         $pdo->prepare("UPDATE board SET location = 'table', pos = ? WHERE game_id = ? AND card_rank = ? AND card_suit = ? AND location = ?")
             ->execute([$next_pos, $game_id, $rank, $suit, $loc_hand]);
     }

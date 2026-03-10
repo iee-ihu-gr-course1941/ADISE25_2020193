@@ -8,6 +8,9 @@ header('Content-Type: application/json');
 $game_id = 1;
 
 try {
+    $pdo->query("DELETE FROM players");
+    $pdo->prepare("UPDATE games SET status='playing', current_turn='P1', p1_xeris=0, p2_xeris=0 WHERE game_id=?")
+        ->execute([$game_id]);
     reset_board($game_id, $pdo);
     
     // Ενημέρωση του status του παιχνιδιού

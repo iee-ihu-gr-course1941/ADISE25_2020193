@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 $game_id = 1;
 
 try {
-    $stmtGame = $pdo->prepare("SELECT current_turn FROM games WHERE game_id = ?");
+    $stmtGame = $pdo->prepare("SELECT current_turn, p1_xeris, p2_xeris FROM games WHERE game_id = ?");
     $stmtGame->execute([$game_id]);
     $game = $stmtGame->fetch();
 
@@ -13,7 +13,12 @@ try {
     $stmtTable->execute([$game_id]);
     $tableCards = $stmtTable->fetchAll();
 
-    $loc = ($game['current_turn'] == 'P1') ? 'hand_p1' : 'hand_p2';
+    $viewer_num = isset($_GET['player_num']) ? intval($_GET['player_num']) : 1;
+    $loc = ($viewer_num == 1) ? 'hand_p1' : 'hand_p2';
+
+    $stmtHand = $pdo->prepare("SELECT card_suit as suit, card_rank as rank FROM board WHERE game_id = ? AND location = ? ORDER BY pos ASC");
+    $stmtHand->execute([$game_id, $loc]);
+    $handCards = $stmtHand->fetchAll();
     $stmtHand = $pdo->prepare("SELECT card_suit as suit, card_rank as rank FROM board WHERE game_id = ? AND location = ? ORDER BY pos ASC");
     $stmtHand->execute([$game_id, $loc]);
     $handCards = $stmtHand->fetchAll();
@@ -34,15 +39,44 @@ try {
         return $pts;
     }
 
+    $stmtPlayers = $pdo->query("SELECT username, player_num FROM players");
+    $playersData = $stmtPlayers->fetchAll();
+
+    $p1_name = "Αναμονή...";
+    $p2_name = "Αναμονή...";
+
+    foreach ($playersData as $p) {
+        if ($p['player_num'] == 1) $p1_name = $p['username'];
+        if ($p['player_num'] == 2) $p2_name = $p['username'];
+    }
+
+    // Έλεγχος αν τελείωσε το παιχνίδι
+    $stmtCountAll = $pdo->prepare("SELECT COUNT(*) as c FROM board WHERE game_id = ? AND location IN ('deck', 'hand_p1', 'hand_p2')");
+    $stmtCountAll->execute([$game_id]);
+    $remaining = $stmtCountAll->fetch()['c'];
+
+    $winner = null;
+    if ($remaining == 0) {
+        $p1_total = calculatePoints($pdo, $game_id, 1) + ($game['p1_xeris'] * 10);
+        $p2_total = calculatePoints($pdo, $game_id, 2) + ($game['p2_xeris'] * 10);
+    
+        if ($p1_total > $p2_total) $winner = $p1_name . " (Νικητής!)";
+        else if ($p2_total > $p1_total) $winner = $p2_name . " (Νικητής!)";
+        else $winner = "Ισοπαλία!";
+    }
+
     echo json_encode([
         'status' => 'success',
         'turn' => $game['current_turn'],
+        'p1_name' => $p1_name, // Νέο πεδίο
+        'p2_name' => $p2_name, // Νέο πεδίο
         'table' => $tableCards,
         'hand' => $handCards,
         'p1_points' => calculatePoints($pdo, $game_id, 1),
         'p2_points' => calculatePoints($pdo, $game_id, 2),
-        'p1_xeris' => 0, // Προς το παρόν 0 μέχρι να φτιάξουμε table για τις ξερές
-        'p2_xeris' => 0
+        'p1_xeris' => $game['p1_xeris'],
+        'p2_xeris' => $game['p2_xeris'],
+        'winner' => $winner
     ]);
 } catch (Exception $e) {
     echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
